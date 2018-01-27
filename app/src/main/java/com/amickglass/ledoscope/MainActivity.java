@@ -12,9 +12,12 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.v4.view.MotionEventCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -37,6 +40,8 @@ public class MainActivity extends AppCompatActivity {
     // UUID for the BTLE client characteristic which is necessary for notifications.
     public static UUID CLIENT_UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 456;
+
+    private static final String DEBUG_TAG = "MyActivity";
 
 
     // UI elements
@@ -285,6 +290,30 @@ public class MainActivity extends AppCompatActivity {
                     // Alert the user that this application requires the location permission to perform the scan.
                 }
             }
+        }
+    }
+
+    public boolean onTouchEvent(MotionEvent event){
+
+        int action = MotionEventCompat.getActionMasked(event);
+
+        float x = event.getX();
+        float y = event.getY();
+
+        switch(action) {
+            case (MotionEvent.ACTION_MOVE) :
+                Log.d(DEBUG_TAG,"y: " + String.valueOf(x));
+                Log.d(DEBUG_TAG,"x: " + String.valueOf(y));
+                return true;
+            case (MotionEvent.ACTION_CANCEL) :
+                Log.d(DEBUG_TAG,"Action was CANCEL");
+                return true;
+            case (MotionEvent.ACTION_OUTSIDE) :
+                Log.d(DEBUG_TAG,"Movement occurred outside bounds " +
+                        "of current screen element");
+                return true;
+            default :
+                return super.onTouchEvent(event);
         }
     }
 
