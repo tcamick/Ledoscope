@@ -46,6 +46,7 @@ public class MainActivity extends AppCompatActivity {
 
     // UI elements
     private TextView messages;
+
     private EditText input;
 
     // BTLE state
@@ -146,7 +147,9 @@ public class MainActivity extends AppCompatActivity {
 
         // Grab references to UI elements.
         messages = (TextView) findViewById(R.id.messages);
-        input = (EditText) findViewById(R.id.input);
+
+        //Commented out to remove Edit Text thing
+        // input = (EditText) findViewById(R.id.input);
 
         adapter = BluetoothAdapter.getDefaultAdapter();
     }
@@ -165,6 +168,11 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStop() {
         super.onStop();
+        disconnect();
+    }
+
+    //Function to close BTLE connection
+    public void disconnect() {
         if (gatt != null) {
             // For better reliability be careful to disconnect and close the connection.
             gatt.disconnect();
@@ -273,11 +281,25 @@ public class MainActivity extends AppCompatActivity {
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-        if (id == R.id.action_settings) {
-            return true;
+
+        switch (item.getItemId()) {
+            case R.id.action_scan:
+                writeLine("Scanning for devices...");
+                adapter.startLeScan(scanCallback);
+                return true;
+
+            case R.id.action_stop_scan:
+                writeLine("Stopping scan...");
+                adapter.stopLeScan(scanCallback);
+                return true;
+            case R.id.action_disconnect:
+                writeLine("Disconnecting...");
+                disconnect();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
         }
-        return super.onOptionsItemSelected(item);
+
     }
 
     @Override
@@ -302,8 +324,9 @@ public class MainActivity extends AppCompatActivity {
 
         switch(action) {
             case (MotionEvent.ACTION_MOVE) :
-                Log.d(DEBUG_TAG,"y: " + String.valueOf(x));
-                Log.d(DEBUG_TAG,"x: " + String.valueOf(y));
+               // Log.d(DEBUG_TAG,"x: " + String.valueOf(x));
+               // Log.d(DEBUG_TAG,"y: " + String.valueOf(y));
+                getRotation(event);
                 return true;
             case (MotionEvent.ACTION_CANCEL) :
                 Log.d(DEBUG_TAG,"Action was CANCEL");
@@ -315,6 +338,75 @@ public class MainActivity extends AppCompatActivity {
             default :
                 return super.onTouchEvent(event);
         }
+
     }
 
+    public void writeBTLE(String value) {
+
+        if (tx == null ) {
+            // Do nothing if there is no device or message to send.
+            return;
+        }
+        // Update TX characteristic value.  Note the setValue overload that takes a byte array must be used.
+        tx.setValue( value);
+
+        if (gatt.writeCharacteristic(tx)) {
+            //writeLine(value);
+        }
+        else {
+            writeLine("Couldn't write TX characteristic!");
+        }
+    }
+
+    public void getRotation(MotionEvent event){
+
+        //center
+        int yC = 1400;
+        int xC = 700;
+
+        if(event.getAction() == MotionEvent.ACTION_MOVE) {
+
+            int action = MotionEventCompat.getActionMasked(event);
+
+            int historySize = event.getHistorySize();
+
+            int x = Math.round(event.getX());
+            int y = Math.round(event.getY());
+
+            if(historySize > 1){
+                int xH = Math.round(event.getHistoricalX(historySize - 1));
+                int yH = Math.round(event.getHistoricalY(historySize - 1));
+
+                int isClockwise = isClockwise( xC, yC,  xH, yH, x, y);
+                if(isClockwise != 0) {
+
+                    if (isClockwise < 0) {
+                        writeBTLE("1");
+                       // Log.d(DEBUG_TAG, "D: CounterClockwise x: " + String.valueOf(x) + " y: " + String.valueOf(y) + " " + String.valueOf(isClockwise));
+                        writeLine("D: CounterClockwise x: " + String.valueOf(x) + " y: " + String.valueOf(y) + " " + String.valueOf(isClockwise));
+
+                    } else {
+                        writeBTLE("2");
+                        writeLine( "D: Clockwise x: " + String.valueOf(x) + " y: " + String.valueOf(y) + " " + String.valueOf(isClockwise));
+                    }
+                }
+            }
+
+        }
+
+    }
+
+    public int isClockwise(int xC, int yC, int xH, int yH, int x, int y) {
+
+        int isClockwise = ((xH - xC)*(y - yC) - (yH - yC)*(x - xC));
+
+        return isClockwise;
+
+    }
+
+
+
 }
+
+
+
